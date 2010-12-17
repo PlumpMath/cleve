@@ -1,5 +1,6 @@
 # CLEVE
 
-Common Lisp utilities for EVE Online
+## Common Lisp utilities for EVE Online
 
-*more info coming later...*
+I have started playing EVE again so I'm resurrecting some of my
+utilities that I dumped here: http://www.aerique.net/software/cleve/src/
