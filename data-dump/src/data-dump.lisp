@@ -68,10 +68,10 @@
     (loop for attr in attrs
           for value-int = (elt attr 2)
           for value-float = (elt attr 3)
-          collect (list :attribute (attribute-by-id (elt attr 1))
-                        :value (if value-int
-                                   value-int
-                                   value-float)))))
+          collect (cons (attribute-by-id (elt attr 1))
+                        (if value-int
+                            value-int
+                            value-float)))))
 
 
 (defun type-by-id (id)
