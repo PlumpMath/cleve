@@ -5,5 +5,6 @@
 (defpackage :cleve-data-dump
   (:use :cl)
   (:export :connect-to-eve-data-dump
-           :region-by-id :solar-system-by-id :solar-system-from-jumps-by-id
-           :solar-system-to-jumps-by-id))
+           :attribute-by-id :category-by-id :group-by-id :region-by-id
+           :solar-system-by-id :solar-system-from-jumps-by-id
+           :solar-system-to-jumps-by-id :type-attributes-by-id :type-by-id))
