@@ -26,6 +26,12 @@
     (values (car rows) column-names)))
 
 
+(defun effect-by-id (id)
+  (multiple-value-bind (rows column-names)
+      (clsql:select [*] :from [dgmEffects] :where [= [effectID] id])
+    (values (car rows) column-names)))
+
+
 (defun group-by-id (id)
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [invGroups] :where [= [groupID] id])
@@ -72,6 +78,14 @@
                         (if value-int
                             value-int
                             value-float)))))
+
+
+(defun type-effects-by-id (id)
+  (let ((effects (clsql:select [*] :from [dgmTypeEffects]
+                                   :where [= [typeID] id])))
+    (loop for effect in effects
+          for is-default = (elt effect 2)
+          collect (cons (effect-by-id (elt effect 1)) is-default))))
 
 
 (defun type-by-id (id)
