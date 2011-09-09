@@ -68,10 +68,13 @@
                      (code condition) (message condition)))))
 
 
-;;; Classes & Methods
+;;; Classes & Methods (& Functions)
 
 (defmethod attr= ((attribute sax::standard-attribute) string)
   (string= (sax:attribute-local-name attribute) string))
+
+(defun attr-member (item attributes)
+  (member item attributes :key #'sax:attribute-local-name :test #'string=))
 
 (defmethod value ((attribute sax::standard-attribute))
   (sax:attribute-value attribute))
@@ -170,6 +173,81 @@
          (setf (paid-until handler) data))
         ((elt= handler "userID")
          (setf (user-id handler) (parse-number data)))))
+
+;;; char-character-sheet-handler
+;;;
+;;; TODO low hanging fruit has been picked, doesn't support implants and ...
+;;;      corp* stuff yet.
+
+(defclass char-character-sheet-handler (eve-api-handler)
+  ((alliance-id :accessor alliance-id :initform nil)
+   (alliance-name :accessor alliance-name :initform nil)
+   (ancestry :accessor ancestry :initform nil)
+   (balance :accessor balance :initform nil)
+   (blood-line :accessor blood-line :initform nil)
+   (certificates :accessor certificates :initform nil)
+   (character-id :accessor character-id :initform nil)
+   (clone-name :accessor clone-name :initform nil)
+   (clone-skill-points :accessor clone-skill-points :initform nil)
+   (corporation-id :accessor corporation-id :initform nil)
+   (corporation-name :accessor corporation-name :initform nil)
+   (date-of-birth :accessor date-of-birth :initform nil)
+   (gender :accessor gender :initform nil)
+   (name :accessor name :initform nil)
+   (race :accessor race :initform nil)
+   (skills :accessor skills :initform nil)))
+
+(defmethod sax:characters ((handler char-character-sheet-handler) data)
+  (cond ((elt= handler "allianceID")
+         (setf (alliance-id handler) (parse-number data)))
+        ((elt= handler "allianceName")
+         (setf (alliance-name handler) data))
+        ((elt= handler "ancestry")
+         (setf (ancestry handler) data))
+        ((elt= handler "balance")
+         (setf (balance handler) (parse-number data)))
+        ((elt= handler "bloodLine")
+         (setf (blood-line handler) data))
+        ((elt= handler "characterID")
+         (setf (character-id handler) (parse-number data)))
+        ((elt= handler "cloneName")
+         (setf (clone-name handler) data))
+        ((elt= handler "cloneSkillPoints")
+         (setf (clone-skill-points handler) (parse-number data)))
+        ((elt= handler "corporationID")
+         (setf (corporation-id handler) (parse-number data)))
+        ((elt= handler "corporationName")
+         (setf (corporation-name handler) data))
+        ((elt= handler "DoB")
+         (setf (date-of-birth handler) data))
+        ((elt= handler "gender")
+         (setf (gender handler) data))
+        ((elt= handler "name")
+         (setf (name handler) data))
+        ((elt= handler "race")
+         (setf (race handler) data))))
+
+(defmethod sax:start-element ((handler char-character-sheet-handler)
+                              namespace-uri local-name qname attributes)
+  (cond ((and (elt= handler "row") (attr-member "skillpoints" attributes))
+         (push (nreverse (loop for attr in attributes
+                               when (attr= attr "level")
+                                 append (list (value2number attr) :level)
+                               when (attr= attr "published")
+                                 append (list (value2number attr) :published)
+                               when (attr= attr "skillpoints")
+                                 append (list (value2number attr) :skillpoints)
+                               when (attr= attr "typeID")
+                                 append (list (value2number attr) :type-id)))
+               (skills handler)))
+        ((and (elt= handler "row") (attr-member "certificateID" attributes))
+         ;; TODO LOOP should become something like GET-ATTR.
+         (push (loop with result = nil
+                     for attr in attributes
+                     when (attr= attr "certificateID")
+                       do (setf result (value2number attr))
+                     finally (return result))
+               (certificates handler)))))
 
 ;;; char-wallet-journal-handler
 
@@ -380,6 +458,35 @@
          (rows (parse-rowset-response res)))
     (when rows
       (first rows))))
+
+
+(defun char-character-sheet (user-id api-key character-id &optional (xml nil))
+  (let ((res (if xml
+                 xml
+                 (api-request (api-url "/char/CharacterSheet.xml.aspx")
+                      :parameters `(("userid" . ,(mkstr user-id))
+                                    ("apikey" . ,api-key)
+                                    ("characterid" . ,(mkstr character-id))))))
+        (hnd nil))
+    (when res
+      (setf hnd (make-instance 'char-character-sheet-handler))
+      (cxml:parse res hnd)
+      (list :alliance-id (alliance-id hnd)
+            :alliance-name (alliance-name hnd)
+            :ancestry (ancestry hnd)
+            :balance (balance hnd)
+            :blood-line (blood-line hnd)
+            :character-id (character-id hnd)
+            :clone-name (clone-name hnd)
+            :clone-skill-points (clone-skill-points hnd)
+            :corporation-id (corporation-id hnd)
+            :corporation-name (corporation-name hnd)
+            :date-of-birth (date-of-birth hnd)
+            :gender (gender hnd)
+            :name (name hnd)
+            :race (race hnd)
+            :certificates (nreverse (certificates hnd))
+            :skills (nreverse (skills hnd))))))
 
 
 (defun char-wallet-journal (user-id api-key character-id
