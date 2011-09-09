@@ -89,6 +89,18 @@
 
 
 (defun type-by-id (id)
+  "Returns one[1] result for type ID from the table invTypes or NIL as the
+  first value.  Returns the column names as second value.
+  [1] since we're querying on primary key"
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [invTypes] :where [= [typeID] id])
     (values (car rows) column-names)))
+
+
+(defun type-by-name (name)
+  "Returns multiple rows from the table invTypes or NIL as the first value.
+  Returns the column names as second value.
+  It is possible to use wildcards in NAME, eg.: \"tempest%\"."
+  (multiple-value-bind (rows column-names)
+      (clsql:select [*] :from [invTypes] :where [like [typeName] name])
+    (values rows column-names)))
