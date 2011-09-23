@@ -64,6 +64,12 @@
     (values rows column-names)))
 
 
+(defun station-by-id (id)
+  (multiple-value-bind (rows column-names)
+      (clsql:select [*] :from [staStations] :where [= [stationID] id])
+    (values (car rows) column-names)))
+
+
 ;; Checkout the following link for subselects:
 ;; http://www.ravenbrook.com/doc/2002/09/13/common-sql/#section-4.1
 ;; and for iteration:
@@ -88,13 +94,23 @@
           collect (cons (effect-by-id (elt effect 1)) is-default))))
 
 
-(defun type-by-id (id)
+(defun type-by-id (id &rest columns)
   "Returns one[1] result for type ID from the table invTypes or NIL as the
   first value.  Returns the column names as second value.
   [1] since we're querying on primary key"
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [invTypes] :where [= [typeID] id])
-    (values (car rows) column-names)))
+    (if columns
+        (loop for column in columns
+              for position = (position column column-names :test #'string=)
+              when position
+                collect (elt (car rows) position) into row
+              and
+                collect (elt column-names position) into names
+              finally (return (if (< (length row) 2)
+                                  (values (car row) (car names))
+                                  (values row names))))
+        (values (car rows) column-names))))
 
 
 (defun type-by-name (name)
