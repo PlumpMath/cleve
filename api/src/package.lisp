@@ -7,5 +7,5 @@
   (:import-from :cl-user :quit)
   (:export :account-account-status :account-characters :account-api-key-info
            :char-account-balance :char-wallet-journal :char-wallet-transactions
-           :eve-character-info :eve-error-list :eve-ref-types :map-jumps
-           :server-server-status))
+           :eve-character-info :eve-conquerable-station-list :eve-error-list
+           :eve-ref-types :map-jumps :server-server-status))

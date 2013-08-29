@@ -590,6 +590,13 @@
             :race (race hnd)))))
 
 
+(defun eve-conquerable-station-list ()
+  (let* ((res (api-request (api-url "eve/ConquerableStationList.xml.aspx")))
+         (rows (parse-rowset-response res)))
+    (when rows
+      (nreverse rows))))
+
+
 (defun eve-error-list ()
   (let* ((res (api-request (api-url "eve/ErrorList.xml.aspx")))
          (rows (parse-rowset-response res)))
