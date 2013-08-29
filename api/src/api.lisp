@@ -6,7 +6,7 @@
 ;;; Variables
 
 (defparameter *api-server* "http://api.eve-online.com/")
-(defparameter *proxy* '("172.22.7.16" 8080))
+(defparameter *proxy* nil)  ; '("127.0.0.1" 8080))
 
 (defparameter +numbers+ '(:account-id :account-key :amount :arg-id1 :balance
                           :character-id :client-id :corporation-id :error-code
@@ -426,10 +426,13 @@
 
 ;;; API Functions
 
-(defun account-account-status (user-id api-key)
-  (let ((res (api-request (api-url "/account/AccountStatus.xml.aspx")
-                          :parameters `(("userid" . ,(mkstr user-id))
-                                        ("apikey" . ,api-key))))
+;; Not completely tested.
+;; FIXME user-id is nil
+(defun account-account-status (key-id v-code char-id)
+  (let ((res (api-request (api-url "account/AccountStatus.xml.aspx")
+                          :parameters `(("keyid"       . ,(mkstr key-id))
+                                        ("vcode"       . ,v-code)
+                                        ("characterid" . ,(mkstr char-id)))))
         (hnd nil))
     (when res
       (setf hnd (make-instance 'account-account-status-handler))
@@ -441,17 +444,28 @@
             :user-id (user-id hnd)))))
 
 
-(defun account-characters (user-id api-key)
-  (let* ((res (api-request (api-url "/account/Characters.xml.aspx")
-                           :parameters `(("userid" . ,(mkstr user-id))
-                                         ("apikey" . ,api-key))))
+(defun account-characters (key-id v-code)
+  (let* ((res (api-request (api-url "account/Characters.xml.aspx")
+                           :parameters `(("keyid" . ,(mkstr key-id))
+                                         ("vcode" . ,v-code))))
          (rows (parse-rowset-response res)))
     (when rows
       (nreverse rows))))
 
 
+;; FIXME <key accessMask...> isn't supported yet
+(defun account-api-key-info (key-id v-code)
+  (let* ((res (api-request (api-url "account/APIKeyInfo.xml.aspx")
+                           :parameters `(("keyid" . ,(mkstr key-id))
+                                         ("vcode" . ,v-code))))
+         (rows (parse-rowset-response res)))
+    (when rows
+      (nreverse rows))))
+
+
+;; untested for Odyssey
 (defun char-account-balance (user-id api-key character-id)
-  (let* ((res (api-request (api-url "/char/AccountBalance.xml.aspx")
+  (let* ((res (api-request (api-url "char/AccountBalance.xml.aspx")
                        :parameters `(("userid" . ,(mkstr user-id))
                                      ("apikey" . ,api-key)
                                      ("characterid" . ,(mkstr character-id)))))
@@ -460,10 +474,11 @@
       (first rows))))
 
 
+;; untested for Odyssey
 (defun char-character-sheet (user-id api-key character-id &optional (xml nil))
   (let ((res (if xml
                  xml
-                 (api-request (api-url "/char/CharacterSheet.xml.aspx")
+                 (api-request (api-url "char/CharacterSheet.xml.aspx")
                       :parameters `(("userid" . ,(mkstr user-id))
                                     ("apikey" . ,api-key)
                                     ("characterid" . ,(mkstr character-id))))))
@@ -489,6 +504,7 @@
             :skills (nreverse (skills hnd))))))
 
 
+;; untested for Odyssey
 (defun char-wallet-journal (user-id api-key character-id
                             &key (all nil) (before-ref-id nil))
   (let* ((pars (append `(("userid" . ,(mkstr user-id))
@@ -496,7 +512,7 @@
                          ("characterid" . ,(mkstr character-id)))
                        (when before-ref-id
                          `(("beforerefid" . ,(mkstr before-ref-id))))))
-         (res (api-request (api-url "/char/WalletJournal.xml.aspx")
+         (res (api-request (api-url "char/WalletJournal.xml.aspx")
                            :parameters pars))
          (hnd nil))
     (when res
@@ -505,7 +521,7 @@
       (when all
         (loop with n-entries = (length (journal hnd))
               while t  ; TODO hmm...
-              for more = (api-request (api-url "/char/WalletJournal.xml.aspx")
+              for more = (api-request (api-url "char/WalletJournal.xml.aspx")
                           :parameters `(("userid" . ,(mkstr user-id))
                                         ("apikey" . ,api-key)
                                         ("characterid" . ,(mkstr character-id))
@@ -517,6 +533,7 @@
       (reverse (journal hnd)))))
 
 
+;; untested for Odyssey
 (defun char-wallet-transactions (user-id api-key character-id
                                  &key (all nil) (before-trans-id nil))
   (let* ((pars (append `(("userid" . ,(mkstr user-id))
@@ -524,7 +541,7 @@
                          ("characterid" . ,(mkstr character-id)))
                        (when before-trans-id
                          `(("beforetransid" . ,(mkstr before-trans-id))))))
-         (res (api-request (api-url "/char/WalletTransactions.xml.aspx")
+         (res (api-request (api-url "char/WalletTransactions.xml.aspx")
                            :parameters pars))
          (hnd nil))
     (when res
@@ -533,7 +550,7 @@
       (when all
         (loop with n-trans = (length (transactions hnd))
               while t  ; TODO hmm...
-              for more = (api-request (api-url "/char/WalletTransactions.xml.aspx")
+              for more = (api-request (api-url "char/WalletTransactions.xml.aspx")
                           :parameters `(("userid" . ,(mkstr user-id))
                                         ("apikey" . ,api-key)
                                         ("characterid" . ,(mkstr character-id))
@@ -546,8 +563,9 @@
       (reverse (transactions hnd)))))
 
 
+;; untested for Odyssey
 (defun eve-character-info (user-id api-key character-id)
-  (let ((res (api-request (api-url "/eve/CharacterInfo.xml.aspx")
+  (let ((res (api-request (api-url "eve/CharacterInfo.xml.aspx")
                        :parameters `(("userid" . ,(mkstr user-id))
                                      ("apikey" . ,api-key)
                                      ("characterid" . ,(mkstr character-id)))))
@@ -573,28 +591,27 @@
 
 
 (defun eve-error-list ()
-  (let* ((res (api-request (api-url "/eve/ErrorList.xml.aspx")))
+  (let* ((res (api-request (api-url "eve/ErrorList.xml.aspx")))
          (rows (parse-rowset-response res)))
     (when rows
       (nreverse rows))))
 
 
 (defun eve-ref-types ()
-  (let* ((res (api-request (api-url "/eve/RefTypes.xml.aspx")))
+  (let* ((res (api-request (api-url "eve/RefTypes.xml.aspx")))
          (rows (parse-rowset-response res)))
     (when rows
       (nreverse rows))))
 
 
 (defun map-jumps ()
-  (let* ((res (api-request (api-url "/map/Jumps.xml.aspx")))
+  (let* ((res (api-request (api-url "map/Jumps.xml.aspx")))
          (rows (parse-rowset-response res)))
     (when rows
       (nreverse rows))))
 
 
-;; TODO rename to server-server-status
-(defun server-status ()
+(defun server-server-status ()
   (let ((res (api-request (api-url "server/ServerStatus.xml.aspx")))
         (hnd nil))
     (when res
