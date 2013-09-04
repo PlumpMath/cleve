@@ -10,10 +10,11 @@
 
 (defparameter +numbers+ '(:account-id :account-key :amount :arg-id1 :balance
                           :character-id :client-id :corporation-id :error-code
-                          :journal-transaction-id :owner-id1 :owner-id2 :price
-                          :quantity :ref-id :ref-type-id :ship-jumps
-                          :solar-system-id :station-id :tax-amount
-                          :tax-receiver-id :transaction-id :type-id))
+                          :journal-transaction-id :owner-id1 :owner-id2
+                          :pod-kills :price :quantity :ref-id :ref-type-id
+                          :ship-jumps :ship-kills :solar-system-id :station-id
+                          :tax-amount :tax-receiver-id :transaction-id
+                          :type-id))
 
 
 ;;; Common Functions
@@ -611,8 +612,15 @@
       (nreverse rows))))
 
 
-(defun map-jumps ()
-  (let* ((res (api-request (api-url "map/Jumps.xml.aspx")))
+(defun map-jumps (&optional xml)
+  (let* ((res (if xml xml (api-request (api-url "map/Jumps.xml.aspx"))))
+         (rows (parse-rowset-response res)))
+    (when rows
+      (nreverse rows))))
+
+
+(defun map-kills (&optional (xml nil))
+  (let* ((res (if xml xml (api-request (api-url "map/Kills.xml.aspx"))))
          (rows (parse-rowset-response res)))
     (when rows
       (nreverse rows))))
