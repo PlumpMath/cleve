@@ -10,11 +10,11 @@
 
 (defparameter +numbers+ '(:account-id :account-key :amount :arg-id1 :balance
                           :character-id :client-id :corporation-id :error-code
-                          :journal-transaction-id :owner-id1 :owner-id2
-                          :pod-kills :price :quantity :ref-id :ref-type-id
-                          :ship-jumps :ship-kills :solar-system-id :station-id
-                          :tax-amount :tax-receiver-id :transaction-id
-                          :type-id))
+                          :faction-kills :journal-transaction-id :owner-id1
+                          :owner-id2 :pod-kills :price :quantity :ref-id
+                          :ref-type-id :ship-jumps :ship-kills :solar-system-id
+                          :station-id :tax-amount :tax-receiver-id
+                          :transaction-id :type-id))
 
 
 ;;; Common Functions
