@@ -160,8 +160,7 @@
   ((create-date :accessor create-date :initform nil)
    (logon-count :accessor logon-count :initform nil)
    (logon-minutes :accessor logon-minutes :initform nil)
-   (paid-until :accessor paid-until :initform nil)
-   (user-id :accessor user-id :initform nil)))
+   (paid-until :accessor paid-until :initform nil)))
 
 (defmethod sax:characters ((handler account-account-status-handler) data)
   (cond ((elt= handler "createDate")
@@ -171,9 +170,7 @@
         ((elt= handler "logonMinutes")
          (setf (logon-minutes handler) (parse-number data)))
         ((elt= handler "paidUntil")
-         (setf (paid-until handler) data))
-        ((elt= handler "userID")
-         (setf (user-id handler) (parse-number data)))))
+         (setf (paid-until handler) data))))
 
 ;;; char-character-sheet-handler
 ;;;
@@ -427,8 +424,6 @@
 
 ;;; API Functions
 
-;; Not completely tested.
-;; FIXME user-id is nil
 (defun account-account-status (key-id v-code char-id)
   (let ((res (api-request (api-url "account/AccountStatus.xml.aspx")
                           :parameters `(("keyid"       . ,(mkstr key-id))
@@ -441,8 +436,7 @@
       (list :create-date (create-date hnd)
             :logon-count (logon-count hnd)
             :logon-minutes (logon-minutes hnd)
-            :paid-until (paid-until hnd)
-            :user-id (user-id hnd)))))
+            :paid-until (paid-until hnd)))))
 
 
 (defun account-characters (key-id v-code)
@@ -464,24 +458,24 @@
       (nreverse rows))))
 
 
-;; untested for Odyssey
-(defun char-account-balance (user-id api-key character-id)
+;; updated for Odyssey
+(defun char-account-balance (key-id v-code character-id)
   (let* ((res (api-request (api-url "char/AccountBalance.xml.aspx")
-                       :parameters `(("userid" . ,(mkstr user-id))
-                                     ("apikey" . ,api-key)
+                       :parameters `(("keyid" . ,(mkstr key-id))
+                                     ("vcode" . ,v-code)
                                      ("characterid" . ,(mkstr character-id)))))
          (rows (parse-rowset-response res)))
     (when rows
       (first rows))))
 
 
-;; untested for Odyssey
-(defun char-character-sheet (user-id api-key character-id &optional (xml nil))
+;; updated for Odyssey but not really checked ("Got output. Hey, it works!")
+(defun char-character-sheet (key-id v-code character-id &optional (xml nil))
   (let ((res (if xml
                  xml
                  (api-request (api-url "char/CharacterSheet.xml.aspx")
-                      :parameters `(("userid" . ,(mkstr user-id))
-                                    ("apikey" . ,api-key)
+                      :parameters `(("keyid" . ,(mkstr key-id))
+                                    ("vcode" . ,v-code)
                                     ("characterid" . ,(mkstr character-id))))))
         (hnd nil))
     (when res
@@ -505,11 +499,11 @@
             :skills (nreverse (skills hnd))))))
 
 
-;; untested for Odyssey
-(defun char-wallet-journal (user-id api-key character-id
+;; partly tested for Odyssey (":all t" is untested)
+(defun char-wallet-journal (key-id v-code character-id
                             &key (all nil) (before-ref-id nil))
-  (let* ((pars (append `(("userid" . ,(mkstr user-id))
-                         ("apikey" . ,api-key)
+  (let* ((pars (append `(("keyid" . ,(mkstr key-id))
+                         ("vcode" . ,v-code)
                          ("characterid" . ,(mkstr character-id)))
                        (when before-ref-id
                          `(("beforerefid" . ,(mkstr before-ref-id))))))
@@ -523,8 +517,8 @@
         (loop with n-entries = (length (journal hnd))
               while t  ; TODO hmm...
               for more = (api-request (api-url "char/WalletJournal.xml.aspx")
-                          :parameters `(("userid" . ,(mkstr user-id))
-                                        ("apikey" . ,api-key)
+                          :parameters `(("keyid" . ,(mkstr key-id))
+                                        ("vcode" . ,v-code)
                                         ("characterid" . ,(mkstr character-id))
                                         ("beforerefid" . ,(mkstr (lowest-ref-id hnd)))))
               do (cxml:parse more hnd)
@@ -534,11 +528,11 @@
       (reverse (journal hnd)))))
 
 
-;; untested for Odyssey
-(defun char-wallet-transactions (user-id api-key character-id
+;; partly tested for Odyssey (":all t" doesn't seem to work)
+(defun char-wallet-transactions (key-id v-code character-id
                                  &key (all nil) (before-trans-id nil))
-  (let* ((pars (append `(("userid" . ,(mkstr user-id))
-                         ("apikey" . ,api-key)
+  (let* ((pars (append `(("keyid" . ,(mkstr key-id))
+                         ("vcode" . ,v-code)
                          ("characterid" . ,(mkstr character-id)))
                        (when before-trans-id
                          `(("beforetransid" . ,(mkstr before-trans-id))))))
@@ -552,8 +546,8 @@
         (loop with n-trans = (length (transactions hnd))
               while t  ; TODO hmm...
               for more = (api-request (api-url "char/WalletTransactions.xml.aspx")
-                          :parameters `(("userid" . ,(mkstr user-id))
-                                        ("apikey" . ,api-key)
+                          :parameters `(("keyid" . ,(mkstr key-id))
+                                        ("vcode" . ,v-code)
                                         ("characterid" . ,(mkstr character-id))
                                         ("beforetransid" . ,(mkstr (lowest-trans-id hnd)))))
               do (format t "Getting more before: ~A~%" (lowest-trans-id hnd))
@@ -564,11 +558,11 @@
       (reverse (transactions hnd)))))
 
 
-;; untested for Odyssey
-(defun eve-character-info (user-id api-key character-id)
+;; updated for Odyssey but not extensively tested
+(defun eve-character-info (key-id v-code character-id)
   (let ((res (api-request (api-url "eve/CharacterInfo.xml.aspx")
-                       :parameters `(("userid" . ,(mkstr user-id))
-                                     ("apikey" . ,api-key)
+                       :parameters `(("keyid" . ,(mkstr key-id))
+                                     ("vcode" . ,v-code)
                                      ("characterid" . ,(mkstr character-id)))))
         (hnd nil))
     (when res
