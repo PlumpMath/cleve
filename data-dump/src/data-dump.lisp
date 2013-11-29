@@ -6,7 +6,7 @@
 (in-package :cleve-data-dump)
 
 (clsql:file-enable-sql-reader-syntax)
-(clsql:connect '("data-dump/db/ody11-sqlite3-v1.db") :database-type :sqlite3)
+(clsql:connect '("data-dump/db/rub10-sqlite3-v1.db") :database-type :sqlite3)
 
 ;; For debugging
 ;(clsql:start-sql-recording)
