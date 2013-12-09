@@ -133,8 +133,11 @@
    (name :accessor name :initform nil)
    (rows :accessor rows :initform nil)))
 
-(defmethod sax:start-element ((handler rowset-handler)
-                              namespace-uri local-name qname attributes)
+(defmethod sax:start-element :before ((handler rowset-handler) namespace-uri
+                                      local-name qname attributes)
+  (when (current-element handler)
+    (push (current-element handler) (parent-elements handler)))
+  (setf (current-element handler) local-name)
   (when (elt= handler "rowset")
     (loop for attr in attributes
           when (attr= attr "columns")
@@ -171,6 +174,25 @@
          (setf (logon-minutes handler) (parse-number data)))
         ((elt= handler "paidUntil")
          (setf (paid-until handler) data))))
+
+;;; account-api-key-info-handler
+
+(defclass account-api-key-info-handler (rowset-handler)
+  ((access-mask :accessor access-mask :initform nil)
+   (key-type :accessor key-type :initform nil)
+   (expires :accessor expires :initform nil)
+   (rows :accessor rows :initform nil)))
+
+(defmethod sax:start-element ((handler account-api-key-info-handler)
+                              namespace-uri local-name qname attributes)
+  (when (elt= handler "key")
+    (loop for attr in attributes
+          when (attr= attr "accessMask")
+            do (setf (access-mask handler) (value2number attr))
+          when (attr= attr "expires")
+            do (setf (expires handler) (value attr))
+          when (attr= attr "type")
+            do (setf (key-type handler) (value attr)))))
 
 ;;; char-character-sheet-handler
 ;;;
@@ -447,14 +469,18 @@
       (nreverse rows))))
 
 
-;; FIXME <key accessMask...> isn't supported yet
 (defun account-api-key-info (key-id v-code)
   (let* ((res (api-request (api-url "account/APIKeyInfo.xml.aspx")
                            :parameters `(("keyid" . ,(mkstr key-id))
                                          ("vcode" . ,v-code))))
-         (rows (parse-rowset-response res)))
-    (when rows
-      (nreverse rows))))
+         (hnd nil))
+    (when res
+      (setf hnd (make-instance 'account-api-key-info-handler))
+      (cxml:parse res hnd)
+      (list :access-mask (access-mask hnd)
+            :type (key-type hnd)
+            :expires (expires hnd)
+            :characters (rows hnd)))))
 
 
 ;; updated for Odyssey
