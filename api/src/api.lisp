@@ -424,11 +424,10 @@
 
 ;;; API Functions
 
-(defun account-account-status (key-id v-code char-id)
+(defun account-account-status (key-id v-code)
   (let ((res (api-request (api-url "account/AccountStatus.xml.aspx")
                           :parameters `(("keyid"       . ,(mkstr key-id))
-                                        ("vcode"       . ,v-code)
-                                        ("characterid" . ,(mkstr char-id)))))
+                                        ("vcode"       . ,v-code))))
         (hnd nil))
     (when res
       (setf hnd (make-instance 'account-account-status-handler))
