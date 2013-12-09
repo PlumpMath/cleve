@@ -13,6 +13,10 @@ If CLSQL complains it cannot find libsqlite3 then you need to
 add a link to wherever it is installed on your system in
 CLSQL:*FOREIGN-LIBRARY-PATHS*.  Name it libsqlite3.so.
 
+### SQLite 3 on Windows
+
+Put `sqlite3.dll` in the CLEVE root directory.
+
 ## Notes to Self
 
 Interesting tables:
