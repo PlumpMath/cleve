@@ -3,7 +3,7 @@
 (in-package :cleve-api)
 
 
-;;; Variables
+;;; Globals
 
 (defparameter *api-server* "http://api.eve-online.com/")
 (defparameter *proxy* nil)  ; '("127.0.0.1" 8080))
