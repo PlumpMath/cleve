@@ -524,63 +524,28 @@
             :skills (nreverse (skills hnd))))))
 
 
-;; partly tested for Odyssey (":all t" is untested)
-(defun char-wallet-journal (key-id v-code character-id
-                            &key (all nil) (before-ref-id nil))
-  (let* ((pars (append `(("keyid" . ,(mkstr key-id))
-                         ("vcode" . ,v-code)
-                         ("characterid" . ,(mkstr character-id)))
-                       (when before-ref-id
-                         `(("beforerefid" . ,(mkstr before-ref-id))))))
-         (res (api-request (api-url "char/WalletJournal.xml.aspx")
-                           :parameters pars))
-         (hnd nil))
+(defun char-wallet-journal (key-id v-code character-id)
+  (let ((res (api-request (api-url "char/WalletJournal.xml.aspx")
+                       :parameters `(("keyid" . ,(mkstr key-id))
+                                     ("vcode" . ,v-code)
+                                     ("characterid" . ,(mkstr character-id)))))
+        (hnd nil))
     (when res
       (setf hnd (make-instance 'char-wallet-journal-handler))
       (cxml:parse res hnd)
-      (when all
-        (loop with n-entries = (length (journal hnd))
-              while t  ; TODO hmm...
-              for more = (api-request (api-url "char/WalletJournal.xml.aspx")
-                          :parameters `(("keyid" . ,(mkstr key-id))
-                                        ("vcode" . ,v-code)
-                                        ("characterid" . ,(mkstr character-id))
-                                        ("beforerefid" . ,(mkstr (lowest-ref-id hnd)))))
-              do (cxml:parse more hnd)
-                 (when (= n-entries (length (journal hnd)))
-                   (loop-finish))
-                 (setf n-entries (length (journal hnd)))))
-      (reverse (journal hnd)))))
+      (journal hnd))))
 
 
-;; partly tested for Odyssey (":all t" doesn't seem to work)
-(defun char-wallet-transactions (key-id v-code character-id
-                                 &key (all nil) (before-trans-id nil))
-  (let* ((pars (append `(("keyid" . ,(mkstr key-id))
-                         ("vcode" . ,v-code)
-                         ("characterid" . ,(mkstr character-id)))
-                       (when before-trans-id
-                         `(("beforetransid" . ,(mkstr before-trans-id))))))
-         (res (api-request (api-url "char/WalletTransactions.xml.aspx")
-                           :parameters pars))
-         (hnd nil))
+(defun char-wallet-transactions (key-id v-code character-id)
+  (let ((res (api-request (api-url "char/WalletTransactions.xml.aspx")
+                       :parameters `(("keyid" . ,(mkstr key-id))
+                                     ("vcode" . ,v-code)
+                                     ("characterid" . ,(mkstr character-id)))))
+        (hnd nil))
     (when res
       (setf hnd (make-instance 'char-wallet-transactions-handler))
       (cxml:parse res hnd)
-      (when all
-        (loop with n-trans = (length (transactions hnd))
-              while t  ; TODO hmm...
-              for more = (api-request (api-url "char/WalletTransactions.xml.aspx")
-                          :parameters `(("keyid" . ,(mkstr key-id))
-                                        ("vcode" . ,v-code)
-                                        ("characterid" . ,(mkstr character-id))
-                                        ("beforetransid" . ,(mkstr (lowest-trans-id hnd)))))
-              do (format t "Getting more before: ~A~%" (lowest-trans-id hnd))
-                 (cxml:parse more hnd)
-                 (when (= n-trans (length (transactions hnd)))
-                   (loop-finish))
-                 (setf n-trans (length (transactions hnd)))))
-      (reverse (transactions hnd)))))
+      (transactions hnd))))
 
 
 ;; updated for Odyssey but not extensively tested
