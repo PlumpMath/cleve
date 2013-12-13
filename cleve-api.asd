@@ -8,4 +8,4 @@
                               :serial t
                               :components ((:file "package")
                                            (:file "api"))))))
-  :depends-on (:cxml :drakma :parse-number :split-sequence))
+  :depends-on (:cxml :drakma :md5 :parse-number :split-sequence))

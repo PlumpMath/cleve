@@ -16,8 +16,20 @@
                           :station-id :tax-amount :tax-receiver-id
                           :transaction-id :type-id))
 
+(defparameter *cache* (make-hash-table))
+
 
 ;;; Common Functions
+
+(defun encode-eve-time (eve-time-string)
+  (let ((year   (parse-integer (subseq eve-time-string 0 4)))
+        (month  (parse-integer (subseq eve-time-string 5 7)))
+        (day    (parse-integer (subseq eve-time-string 8 10)))
+        (hour   (parse-integer (subseq eve-time-string 11 13)))
+        (minute (parse-integer (subseq eve-time-string 14 16)))
+        (second (parse-integer (subseq eve-time-string 17 19))))
+    (encode-universal-time second minute hour day month year 0)))
+
 
 (defun lispify (string)
   (loop with prev-char = nil
@@ -41,6 +53,16 @@
                  (t (push char result)))
            (setf prev-char char)
         finally (return (string-upcase (coerce (reverse result) 'string)))))
+
+
+(defun md5hex (string)
+  (apply #'concatenate 'string
+         (loop for c across (md5:md5sum-string string)
+               collect (format nil "~X" c))))
+
+
+(defun md5int (string)
+  (parse-number (md5hex string) :radix 16))
 
 
 (defun mkstr (&rest args)
@@ -423,17 +445,60 @@
 
 ;;; EVE API Functions
 
+(defun encode-cached-until-time (response)
+  (let* ((res (flexi-streams:octets-to-string response))
+         (begin-elt "<cachedUntil>")
+         (end-elt "</cachedUntil>")
+         ;; XXX search :from-end is faster?
+         (begin-pos (search begin-elt res))
+         (end-pos (search end-elt res)))
+    (when (and begin-pos end-pos)
+      (encode-eve-time (subseq res (+ begin-pos (length begin-elt))
+                                   end-pos)))))
+
+
+(defun make-cache-key (url parameters &optional (proxy *proxy*))
+  (let ((key (apply #'concatenate 'string proxy url (loop for p in parameters
+                                                          collect (cdr p)))))
+    (md5int key)))
+
+
+(defun print-cache ()
+  (maphash (lambda (k v)
+             (declare (ignore k))
+             (format t "--- ~A ---~%~A~%"
+                     (multiple-value-bind (s m h day mon yr)
+                         (decode-universal-time (first v) 0)
+                       (format nil "~D-~2,'0D-~2,'0D ~2,'0D:~2,'0D:~2,'0D"
+                               yr mon day h m s))
+                     (flexi-streams:octets-to-string (second v))))
+           *cache*))
+
+
 (defun api-url (relative-path)
   "Returns a concatenation of *API-SERVER* and RELATIVE-PATH."
   (mkstr *api-server* relative-path))
 
 
 (defun api-request (url &key (parameters nil) (proxy *proxy*))
-  (let ((res (handler-case (drakma:http-request url :method :post :proxy proxy
-                                                    :parameters parameters)
-               (usocket:timeout-error ()
-                 (errmsg "Request for " url " timed out.~%")
-                 nil))))
+  (let* ((key (make-cache-key url parameters proxy))
+         (cache-hit (gethash key *cache*))
+         (res nil))
+    ;; For now, caching is mostly used to reduce network traffic and the server
+    ;; load at CCP.  Due to this simple implementation the whole response still
+    ;; has to be parsed again client-side.
+    (when cache-hit
+      (if (<= (get-universal-time) (first cache-hit))
+          (return-from api-request (second cache-hit))
+          (remhash key *cache*)))
+    (setf res (handler-case (drakma:http-request url :method :post :proxy proxy
+                                                     :parameters parameters)
+                (usocket:timeout-error ()
+                  (errmsg "Request for " url " timed out.~%")
+                  nil)))
+    (when res
+      (setf (gethash key *cache*)
+            (list (encode-cached-until-time res) res)))
     res))
 
 
