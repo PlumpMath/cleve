@@ -20,10 +20,20 @@
     (values (car rows) column-names)))
 
 
-(defun category-by-id (id)
+(defun category-by-id (id &rest columns)
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [invCategories] :where [= [categoryID] id])
-    (values (car rows) column-names)))
+    (if columns
+        (loop for column in columns
+              for position = (position column column-names :test #'string=)
+              when position
+                collect (elt (car rows) position) into row
+              and
+                collect (elt column-names position) into names
+              finally (return (if (< (length row) 2)
+                                  (values (car row) (car names))
+                                  (values row names))))
+        (values (car rows) column-names))))
 
 
 (defun effect-by-id (id)
@@ -32,10 +42,20 @@
     (values (car rows) column-names)))
 
 
-(defun group-by-id (id)
+(defun group-by-id (id &rest columns)
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [invGroups] :where [= [groupID] id])
-    (values (car rows) column-names)))
+    (if columns
+        (loop for column in columns
+              for position = (position column column-names :test #'string=)
+              when position
+                collect (elt (car rows) position) into row
+              and
+                collect (elt column-names position) into names
+              finally (return (if (< (length row) 2)
+                                  (values (car row) (car names))
+                                  (values row names))))
+        (values (car rows) column-names))))
 
 
 (defun region-by-id (id)
