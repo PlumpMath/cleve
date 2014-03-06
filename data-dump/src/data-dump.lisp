@@ -12,6 +12,20 @@
 ;(clsql:start-sql-recording)
 
 
+;;; Common Functions
+
+(defun specific-columns (rows column-names columns)
+  (loop for column in columns
+        for position = (position column column-names :test #'string=)
+        when position
+          collect (elt (car rows) position) into row
+        and
+          collect (elt column-names position) into names
+        finally (return (if (< (length row) 2)
+                            (values (car row) (car names))
+                            (values row names)))))
+
+
 ;;; Functions
 
 (defun attribute-by-id (id)
@@ -24,15 +38,7 @@
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [invCategories] :where [= [categoryID] id])
     (if columns
-        (loop for column in columns
-              for position = (position column column-names :test #'string=)
-              when position
-                collect (elt (car rows) position) into row
-              and
-                collect (elt column-names position) into names
-              finally (return (if (< (length row) 2)
-                                  (values (car row) (car names))
-                                  (values row names))))
+        (specific-columns rows column-names columns)
         (values (car rows) column-names))))
 
 
@@ -46,22 +52,16 @@
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [invGroups] :where [= [groupID] id])
     (if columns
-        (loop for column in columns
-              for position = (position column column-names :test #'string=)
-              when position
-                collect (elt (car rows) position) into row
-              and
-                collect (elt column-names position) into names
-              finally (return (if (< (length row) 2)
-                                  (values (car row) (car names))
-                                  (values row names))))
+        (specific-columns rows column-names columns)
         (values (car rows) column-names))))
 
 
-(defun region-by-id (id)
+(defun region-by-id (id &rest columns)
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [mapRegions] :where [= [regionID] id])
-    (values (car rows) column-names)))
+    (if columns
+        (specific-columns rows column-names columns)
+        (values (car rows) column-names))))
 
 
 (defun solar-system-by-id (id)
@@ -121,15 +121,7 @@
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [invTypes] :where [= [typeID] id])
     (if columns
-        (loop for column in columns
-              for position = (position column column-names :test #'string=)
-              when position
-                collect (elt (car rows) position) into row
-              and
-                collect (elt column-names position) into names
-              finally (return (if (< (length row) 2)
-                                  (values (car row) (car names))
-                                  (values row names))))
+        (specific-columns rows column-names columns)
         (values (car rows) column-names))))
 
 
