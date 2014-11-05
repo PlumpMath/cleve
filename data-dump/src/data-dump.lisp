@@ -1,12 +1,14 @@
 ;;;; data-dump.lisp
 ;;;;
 ;;;; Do (clsql-sys:enable-sql-reader-syntax) on the Slime REPL otherwise
-;;;; you'll get warnings when redefining a form.
+;;;; you'll get warnings when redefining a form.  (Or just use clsql:query.)
 
 (in-package :cleve-data-dump)
 
 (clsql:file-enable-sql-reader-syntax)
-(clsql:connect '("data-dump/db/rub11-sqlite3-v1.db") :database-type :sqlite3)
+(let ((db (first (reverse (directory "data-dump/db/*.db")))))
+  (format *debug-io* "~&Connecting to ~A.~%" db)
+  (clsql:connect (list db) :database-type :sqlite3))
 
 ;; For debugging
 ;(clsql:start-sql-recording)
@@ -14,6 +16,9 @@
 
 ;;; Common Functions
 
+;; This is somewhat retarded, we should just select the columns instead of [*].
+;; BUT, this has the benefit of returning a single value instead of a list
+;; when we're interested in just one column.
 (defun specific-columns (rows column-names columns)
   (loop for column in columns
         for position = (position column column-names :test #'string=)
@@ -68,6 +73,13 @@
   (multiple-value-bind (rows column-names)
       (clsql:select [*] :from [mapSolarSystems] :where [= [solarSystemID] id])
     (values (car rows) column-names)))
+
+
+(defun solar-system-by-name (name)
+  (multiple-value-bind (rows column-names)
+      (clsql:select [*] :from [mapSolarSystems]
+                        :where [like [solarSystemName] name])
+    (values rows column-names)))
 
 
 (defun solar-system-from-jumps-by-id (id)
